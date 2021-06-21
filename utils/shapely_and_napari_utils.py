@@ -82,13 +82,29 @@ def napari_shape_layer_to_shapely(s):
         shapes.append(napari_shape_to_shapely(_coord, _st))
     return GeometryCollection(shapes)
 
+def get_transformed_bbox(shape, affine_matrix: np.ndarray) -> np.ndarray:
+    """
+    returns the corner coordinates  of a 2D array with shape shape
+    after applying the affine transform transform.
+    This corresponds to the oriented bounding box
+    """
+    h,w = shape
+    # create homogeneous coordinates for corner points
+    baserect = np.array([[0,0],[h,0],[h,w],[0,w]])
+    augmented_baserect = np.concatenate((baserect,np.ones((baserect.shape[0],1))), axis=1)
+    # see where the corner points map to 
+    transformed_rect = (affine_matrix @ augmented_baserect.T).T[:,:-1]
+    return transformed_rect
 
 def get_image_layer_rect(layer):
     """given a napari image or labels layer return the oriented bounding box
     coordinates that can be added to a napari shape layer"""
     im = layer.data
-    h,w = im.shape
-    baserect = np.array([[0,0],[h,0],[h,w],[0,w]])
-    augmented_baserect = np.concatenate((baserect,np.ones((baserect.shape[0],1))), axis=1)
-    transformed_rect = (layer.affine.affine_matrix @ augmented_baserect.T).T[:,:-1]
-    return transformed_rect
+    if layer.data.ndim>2:
+        im=np.squeeze(im)
+    
+    if im.ndim != 2:
+        raise ValueError("Layer is not a 2D single channel layer")
+    
+    return get_transformed_bbox(im.shape, layer.affine.affine_matrix)
+
