@@ -37,7 +37,11 @@ def get_rect_from_chunk_slice(chunk_slice):
     return np.array([[miny, minx],[maxy, minx], [maxy, maxx], [miny,maxx]])
 
 
-def tile_chunk_intersections(mosaic_shifted: 'shapely.geometry.GeometryCollection', mosaic_layers: List['napari.layer'], chunks_shapely, chunk_slices):
+def tile_chunk_intersections(mosaic_shifted: 'shapely.geometry.GeometryCollection',
+                            files: List[str], 
+                            transforms: List[np.ndarray], 
+                            chunks_shapely, 
+                            chunk_slices):
     """
     Finds intersections between image tiles and chunks
 
@@ -46,23 +50,17 @@ def tile_chunk_intersections(mosaic_shifted: 'shapely.geometry.GeometryCollectio
     chunks_shapely: contains the shapely objects representing dask array chunk coordinate
     chunk_slices: chunk coordinate objects
 
-    returns a tuple containing the chunk_tiles and tile_chunks data structures
+    returns the chunk_tiles dictionary, which has the chunk anchor point tuples as keys
+    and tuples of image filenames and corresponding transform as values.
     """
     chunk_tiles = {}
-    tile_chunks = {}
     for i, tile in enumerate(mosaic_shifted):
-        if i not in tile_chunks.keys():
-            tile_chunks[i] = []
-        #print(f"Tile {i} intersects with:")
         for j, (chunk, chunk_slice) in enumerate(zip(chunks_shapely, chunk_slices)):
             anchor_point = (chunk_slice[0][0], chunk_slice[1][0])            
             if anchor_point not in chunk_tiles.keys():
                 chunk_tiles[anchor_point] = []
             if tile.intersects(chunk):
-                #print(f"   chunk {j}")
-                tile_chunks[i].append(j)
-                chunk_tiles[anchor_point].append((mosaic_layers[i].name, mosaic_layers[i].affine.affine_matrix))
-                #print(f"intersection area {tile.intersection(chunk).area}")
-    return chunk_tiles, tile_chunks
+                chunk_tiles[anchor_point].append((files[i], transforms[i]))
+    return chunk_tiles
 
  
