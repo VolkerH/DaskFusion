@@ -1,0 +1,7 @@
+scikit-image >= 0.18
+dask >= 2021.06.2
+zarr >= 2.8
+napari[all]
+shapely >= 1.7
+jupyter
+pandas
