@@ -34,7 +34,6 @@ def fuse_func(input_tile_info: Dict[Tuple[int, int], List[Tuple[str, np.ndarray]
     fused = np.zeros(chunk_shape, dtype=dtype)
     for tile_path, tile_affine in tiles_info:
         im = imload_func(tile_path)
-        im = im[...,0]
         shift = AffineTransform(translation=(-anchor_point[0], -anchor_point[1]))
         tile_shifted = affine_transform(im, matrix=np.linalg.inv(tile_affine@shift.params), output_shape=chunk_shape)
         stack = np.stack([fused,tile_shifted])

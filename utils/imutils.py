@@ -25,7 +25,7 @@ def crop_black_border(array: ArrayLike, border_width: int = 12) -> ArrayLike:
     Crops away the band of black pixels on our nikon camera.
     """
     right = -border_width if border_width > 0 else None
-    return array[:, :right, :]
+    return array[:, :right]
 
 
 def subsample(array: ArrayLike, factor: int = 4, method="slice") -> ArrayLike:
@@ -45,8 +45,8 @@ def load_image(
     file: FilePath, transforms: List[Callable[[ArrayLike], ArrayLike]] = None
 ) -> np.ndarray:
     img = imread(file)
-    if img.ndim == 2:
-        img = np.expand_dims(img, axis=0)
+    #if img.ndim == 2:
+    #    img = np.expand_dims(img, axis=0)
     if transforms is not None:
         for t in transforms:
             img = t(img)
