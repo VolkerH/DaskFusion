@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
 
 import numpy as np
 from napari.layers import Image
@@ -36,7 +36,12 @@ def subsample(array: ArrayLike, factor: int = 4, method="slice") -> ArrayLike:
     should be added (just dispatch to skimage).
     """
     if method == "slice":
-        return array[:, ::factor, ::factor]  # todo: support generic nD
+        if array.ndim==3:
+            return array[:, ::factor, ::factor]  # todo: support generic nD
+        elif array.ndim==2:
+            return array[::factor, ::factor]
+        else:
+            raise NotImplementedError(f"{array.ndim} dimension arrays not supported")
     else:
         raise NotImplementedError("only supporting slice for now")
 
@@ -47,10 +52,10 @@ def load_image(
     img = imread(file)
     #if img.ndim == 2:
     #    img = np.expand_dims(img, axis=0)
-    if transforms is not None:
-        for t in transforms:
-            img = t(img)
-    return img
+    #if transforms is not None:
+    #    for t in transforms:
+    #        img = t(img)
+    return apply_transform_chain(img, transforms)
 
 
 def create_image_layer_name(path: Path, channel: Optional[int] = None) -> str:
@@ -75,3 +80,9 @@ def find_layer_by_metadata(
     ), "Multiple matching layers found. Every Layer should be unique for given metadata."
     return candidates[0] if candidates else None
 
+def apply_transform_chain(arr: np.ndarray, transforms: Sequence[Callable]):
+    # this may be more elegant with pytoolz pipe
+    if transforms:
+        for t in transforms:
+            arr = t(arr)
+    return arr

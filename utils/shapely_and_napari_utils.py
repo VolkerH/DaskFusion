@@ -1,5 +1,8 @@
+from functools import partial
+from utils.imutils import apply_transform_chain
+from utils.chunks import get_chunk_coordinates, get_rect_from_chunk_slice, tile_chunk_intersections
 import numpy as np
-from typing import Union, Tuple, Sequence, List
+from typing import Callable, Union, Tuple, Sequence, List
 import copy
 from itertools import product
 from shapely.affinity import translate
@@ -7,7 +10,7 @@ from shapely.geometry.polygon import Polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry import GeometryCollection, LineString
 from skimage.transform import AffineTransform
-
+from dask.array.core import normalize_chunks
 
 def create_grid_of_shapes(
     grid_shape: Tuple[int, int],
@@ -120,3 +123,60 @@ def get_image_layer_rect(layer):
         raise ValueError("Layer is not a 2D single channel layer")
 
     return get_transformed_bbox(im.shape, layer.affine.affine_matrix)
+
+
+def get_mosaics_bboxes_transforms(images: List[np.ndarray], 
+                transform_chain: Sequence[Callable], 
+                normalized_coordinates,
+                factor):
+
+
+    assert len(images)            
+    _apply_transform_chain = partial(apply_transform_chain, transforms=transform_chain)
+    images = list(map(_apply_transform_chain, images))
+    tile_shape= images[0].shape
+
+    bboxes = []
+    transforms = []
+    
+    scale_up = AffineTransform(scale=(factor,factor))
+    scale_down  = AffineTransform(scale=(1.0/factor,1.0/factor))
+    
+    # get bboxes of image tiles after moving them to stage position and scaling
+    for coord in normalized_coordinates:
+        translate = AffineTransform(translation=coord)
+        transform = scale_down.params @ translate.params @ scale_up.params
+        bboxes.append(
+            get_transformed_bbox(tile_shape[:2], transform))
+        transforms.append(transform)
+
+    # determine overall shape (size of fused image)
+    all_bboxes = np.vstack(bboxes)
+    # minimum  & maximum extents of tile collection
+    all_min = all_bboxes.min(axis=0)
+    all_max = all_bboxes.max(axis=0)
+    stitched_shape=tuple(np.ceil(all_max-all_min).astype(int))
+
+    # determine required shift to origin and update transforms
+    shift_to_origin = AffineTransform(translation=-all_min)
+    transforms = [shift_to_origin.params @ t  for t in transforms]
+
+    shifted_bboxes = []
+    for t, coord in zip(transforms,
+                        normalized_coordinates):
+        shifted_bboxes.append(
+            get_transformed_bbox(tile_shape, t))
+    mosaic_shifted = GeometryCollection([napari_shape_to_shapely(s) for s in shifted_bboxes])
+
+    return {'mosaic_shifted': mosaic_shifted, 'stitched_shape': stitched_shape, 'transforms': transforms ,  'transformed_images': images}
+
+
+def get_chunk_slices_and_shapes(chunk_size: Tuple[int,int], array_shape: Tuple[int,int]):
+    chunks = normalize_chunks((4096, 4096), shape=array_shape)
+    # sanity check, can be removed eventually
+    computed_shape = np.array(list(map(sum, chunks)))
+    assert np.all(np.array(array_shape) == computed_shape)
+    chunk_slices = list(get_chunk_coordinates(array_shape, chunk_size))
+    chunk_shapes = list(map(get_rect_from_chunk_slice, chunk_slices))
+    chunks_shapely = GeometryCollection([napari_shape_to_shapely(c) for c in chunk_shapes])
+    return {'chunk_slices': chunk_slices, 'chunks_shapely': chunks_shapely}
