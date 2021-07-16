@@ -172,7 +172,7 @@ def get_mosaics_bboxes_transforms(images: List[np.ndarray],
 
 
 def get_chunk_slices_and_shapes(chunk_size: Tuple[int,int], array_shape: Tuple[int,int]):
-    chunks = normalize_chunks((4096, 4096), shape=array_shape)
+    chunks = normalize_chunks(chunk_size, shape=array_shape)
     # sanity check, can be removed eventually
     computed_shape = np.array(list(map(sum, chunks)))
     assert np.all(np.array(array_shape) == computed_shape)
