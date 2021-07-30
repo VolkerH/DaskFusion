@@ -42,7 +42,7 @@ def fuse_func(input_tile_info: Dict[Tuple[int, int], List[Tuple[Union[str, np.nd
             # without imload function we assume images are passed
             im = image_representation
         shift = AffineTransform(translation=(-anchor_point[0], -anchor_point[1]))
-        tile_shifted = affine_transform(im, matrix=np.linalg.inv(tile_affine@shift.params), output_shape=chunk_shape)
+        tile_shifted = affine_transform(im, matrix=np.linalg.inv(shift.params@tile_affine), output_shape=chunk_shape)
         stack = np.stack([fused,tile_shifted])
         fused = np.max(stack,axis=0)
     return fused
