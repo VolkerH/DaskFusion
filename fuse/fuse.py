@@ -5,8 +5,6 @@ import numpy as np
 from scipy.ndimage import affine_transform
 from skimage.io import imread
 from skimage.transform import AffineTransform
-from utils.imutils import (crop_black_border, load_image, select_channel,
-                           transpose)
 
 
 def fuse_func(
