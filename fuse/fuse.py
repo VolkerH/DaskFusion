@@ -47,6 +47,8 @@ def fuse_func(
             output_shape=chunk_shape,
             cval=0,
         )
+        # note that the dtype comversion here happens without scaling
+        # may want to use one of the skimage.img_as_* functions instead
         stack = np.stack([fused, tile_shifted.astype(dtype)])
         fused = np.max(stack, axis=0)
     return fused
