@@ -47,6 +47,6 @@ def fuse_func(
             output_shape=chunk_shape,
             cval=0,
         )
-        stack = np.stack([fused, tile_shifted])
+        stack = np.stack([fused, tile_shifted.astype(dtype)])
         fused = np.max(stack, axis=0)
     return fused
