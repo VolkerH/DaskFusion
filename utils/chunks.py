@@ -1,12 +1,11 @@
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 from dask.array.core import normalize_chunks
+from shapely.strtree import STRtree
 
 
-def get_chunk_coordinates(
-    shape: Tuple[int, int], chunk_size: Tuple[int, int], return_np_slice: bool = False
-):
+def get_chunk_coordinates(shape: Tuple[int, int], chunk_size: Tuple[int, int]):
     """Iterator that returns the bounding coordinates
     for the individual chunks of a dask array of size
     shape with chunk size chunk_size.
@@ -23,48 +22,49 @@ def get_chunk_coordinates(
     for cy in chunksy:
         x = 0
         for cx in chunksx:
-            if return_np_slice:
-                yield np.s_[y : y + cy, x : x + cx]
-            else:
-                yield ((y, y + cy), (x, x + cx))
+            yield ((y, y + cy), (x, x + cx))
             x = x + cx
         y = y + cy
 
 
-def get_rect_from_chunk_slice(chunk_slice):
-    """given a chunk slice tuple, return a numpy
+def get_rect_from_chunk_boundary(chunk_boundary):
+    """given a chunk boundary tuple, return a numpy
     array that can be added as a shape to napari"
     """
-    ylim, xlim = chunk_slice
+    ylim, xlim = chunk_boundary
     miny, maxy = ylim[0], ylim[1] - 1
     minx, maxx = xlim[0], xlim[1] - 1
     return np.array([[miny, minx], [maxy, minx], [maxy, maxx], [miny, maxx]])
 
 
-def tile_chunk_intersections(
-    mosaic_shifted: "shapely.geometry.GeometryCollection",
-    files: List[str],
-    transforms: List[np.ndarray],
-    chunks_shapely,
-    chunk_slices,
-):
+def find_chunk_tile_intersections(
+    tiles_shapely: List["shapely.geometry.base.BaseGeometry"],
+    chunks_shapely: List["shapely.geometry.base.BaseGeometry"],
+) -> Dict[Tuple[int, int], Tuple[str, np.ndarray]]:
     """
-    Finds intersections between image tiles and chunks
+    For each output array chunk, find the intersecting image tiles
 
-    mosaic_shifted: contains the shapely objects corresponding to transformed images
-    mosaic_layers: the napari layers with the images corresponding to the tiles (used to get the names)
-    chunks_shapely: contains the shapely objects representing dask array chunk coordinate
-    chunk_slices: chunk coordinate objects
+    Args:
+        tile_shapes: Contains the shapely objects corresponding to transformed image outlines.
+                    Each shape in tile_shapes must have a .fuse_info dictionary with
+                    keys "file" and "transform".
+        chunk_shapes: Contains the shapely objects representing dask array chunks.
+                    Each shape in chunk_shapes must have a .fuse_info dictionary with
+                    key "chunk_boundary", containing a tuple of chunk boundaries
 
-    returns the chunk_tiles dictionary, which has the chunk anchor point tuples as keys
-    and tuples of image filenames and corresponding transform as values.
+    Returns:
+         The chunk_to_tiles dictionary, which has the chunk anchor points as keys and tuples of
+         image file names and their corresponding affine transform matrix as values.
     """
-    chunk_tiles = {}
-    for i, tile in enumerate(mosaic_shifted):
-        for j, (chunk, chunk_slice) in enumerate(zip(chunks_shapely, chunk_slices)):
-            anchor_point = (chunk_slice[0][0], chunk_slice[1][0])
-            if anchor_point not in chunk_tiles.keys():
-                chunk_tiles[anchor_point] = []
-            if tile.intersects(chunk):
-                chunk_tiles[anchor_point].append((files[i], transforms[i]))
-    return chunk_tiles
+    chunk_to_tiles = {}
+    tile_tree = STRtree(tiles_shapely)
+
+    for chunk_shape in chunks_shapely:
+        chunk_boundary = chunk_shape.fuse_info["chunk_boundary"]
+        anchor_point = (chunk_boundary[0][0], chunk_boundary[1][0])
+        intersecting_tiles = tile_tree.query(chunk_shape)
+        chunk_to_tiles[anchor_point] = [
+            ((t.fuse_info["file"], t.fuse_info["transform"]))
+            for t in intersecting_tiles
+        ]
+    return chunk_to_tiles
