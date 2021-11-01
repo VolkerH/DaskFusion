@@ -1,6 +1,7 @@
-from typing import Tuple, List
-from dask.array.core import normalize_chunks
+from typing import List, Tuple
+
 import numpy as np
+from dask.array.core import normalize_chunks
 
 
 def get_chunk_coordinates(
