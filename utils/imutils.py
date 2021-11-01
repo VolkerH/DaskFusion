@@ -15,10 +15,6 @@ def transpose(array: ArrayLike) -> ArrayLike:
     return array.T
 
 
-def select_channel(array: ArrayLike, channel=0) -> ArrayLike:
-    return np.expand_dims(array[channel, ...], axis=0)
-
-
 def crop_black_border(array: ArrayLike, border_width: int = 12) -> ArrayLike:
     """
     Crops away the band of black pixels on the Nikon camera used in our lab.
