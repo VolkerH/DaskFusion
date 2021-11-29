@@ -6,6 +6,8 @@ from typing import Tuple, Union
 import chardet
 import pandas as pd
 
+# Functions to extract and handle microscope stage and pixel scale metadata
+
 
 def _detect_encoding(path: Union[str, Path]) -> str:
     with open(path, "rb") as txt_file:
@@ -40,9 +42,7 @@ def extract_coordinates(metadata_file_path: Union[str, Path]) -> pd.DataFrame:
 
     # Regular expression to extract calibration:
     # https://regex101.com/r/Tf1MIh/1
-    cre_calibration = re.compile(
-        r"Calibration \(µm/px\):\s(?P<um_per_pix>[0-9,.]+)"
-    )
+    cre_calibration = re.compile(r"Calibration \(µm/px\):\s(?P<um_per_pix>[0-9,.]+)")
     _ = cre_calibration.findall(text)
     calibration = float(_[0].replace(",", "."))
 
@@ -56,19 +56,14 @@ def extract_coordinates(metadata_file_path: Union[str, Path]) -> pd.DataFrame:
 
 def normalize_coords_to_pixel(
     coords: pd.DataFrame,
-    xy_keys: Tuple[str, str] = ("X", "Y"),
-    conversion_factor_key: str = "um/px",
-    relative_to_first: bool = False,
+    xy_columns: Tuple[str, str] = ("X", "Y"),
+    scale_factor_column: str = "um/px",
 ) -> pd.DataFrame:
     """
-    Normalizes stage coordinates to pixels.
+    Normalizes stage coordinates to pixels coordinates.
     """
 
-    if relative_to_first:
-        origin = coords[list(xy_keys)].iloc[0]
-    else:
-        origin = [0, 0]
-    offset_coords = coords[list(xy_keys)] - origin
-    px_offset_coords = offset_coords.div(coords[conversion_factor_key], axis=0)
+    offset_coords = coords[list(xy_columns)]
+    px_offset_coords = offset_coords.div(coords[scale_factor_column], axis=0)
 
     return px_offset_coords
