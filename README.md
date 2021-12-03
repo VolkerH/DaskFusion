@@ -15,10 +15,14 @@ tiles that overlap the individual blocks (chunks) that we process.
 In principle, this approach can be used to generate very large photomosaics, from collections
 of image tiles with known affine or even perspective transforms.
 
-
 Caveats:
 
 * Regions with multiple ovberlapping tiles are simply merged using a maximum projection. In practice, you would want to amend the fuse function with a smooth blending method.
 * We assume the affine transforms are known. We disregard fine tuning the transformations to get pixel-perfect registration. Situations where the transformations are not known or require fine-tuning can be handled for exampl by SIFT-feature point matching between overlapping tiles and calculation of the transformations from feature point correspondences.
 * This is not production-quality code.
  
+# Additional reading and related work
+
+We wrote up a small blog post on this proof of concept for the [Dask Blog](https://blog.dask.org/2021/12/01/mosaic-fusion).
+
+Some [feedback on the blog post](https://twitter.com/TobiasAdeJong/status/1466719789280382977) by [Tobias deJong](https://github.com/TAdeJong) points out a very similar approach that allows incorporates optimization of tile positions, [see this notebook](https://github.com/TAdeJong/LEEM-analysis/blob/master/6%20-%20Stitching.ipynb). 
