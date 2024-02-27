@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10715850.svg)](https://doi.org/10.5281/zenodo.10715850)
+
+
 # DaskFusion
 
 This repo contains proof-of-concept code that fuses many image tiles from a microscopy scan,
@@ -26,3 +29,7 @@ Caveats:
 We wrote up a small blog post on this proof of concept for the [Dask Blog](https://blog.dask.org/2021/12/01/mosaic-fusion).
 
 Some [feedback on the blog post](https://twitter.com/TobiasAdeJong/status/1466719789280382977) by [Tobias deJong](https://github.com/TAdeJong) points out a very similar approach that allows incorporates optimization of tile positions, [see this notebook](https://github.com/TAdeJong/LEEM-analysis/blob/master/6%20-%20Stitching.ipynb). 
+
+# Citation information
+
+See: https://doi.org/10.5281/zenodo.10715850 for citation information
